@@ -1,0 +1,501 @@
+
+
+#include "./brick_game/tetris/s21_tetris_back.h"
+#include "./gui/cli/tetris/s21_tetris_front.h"
+
+/** @file */
+
+void s21_print_matrix(int** a) {
+  // printf("\n %d - rows\n", A->rows);
+  // printf("\n %d - columns\n", A->columns);
+  printf("\n-------------------------------\n");
+  for (int i = 0; i < FIGURE_SIZE; i++) {
+    for (int j = 0; j < FIGURE_SIZE; j++) {
+      printf("%d ", a[i][j]);
+    }
+    printf("\n");
+  }
+  printf("-------------------------------\n");
+}
+
+#test test_GameInfo
+  GameInfo_t* game = new_game();
+  ck_assert_ptr_nonnull(game);
+  ck_assert_int_eq(game->score, 0);
+  ck_assert_int_eq(game->speed , 1);
+  ck_assert_int_eq(game->level, 1);
+   ck_assert_int_eq(game->pause, 0);
+  free_game(game);
+
+
+
+
+#test test_score
+
+  delete_score();
+
+  int past_score;
+  FILE* file = fopen("score.txt", "r");
+  ck_assert_ptr_nonnull(file);
+  fscanf(file, "%d", &(past_score));
+  //printf("\n\n %d \n\n", past_score );
+  GameInfo_t* game = new_game();
+  
+  ck_assert_int_eq(game->high_score, past_score);
+  game->score = 563;
+  score(game);
+  fclose(file);
+
+  FILE* file_hscore = fopen("score.txt", "r");
+  fscanf(file_hscore, "%d", &(game->high_score));
+  fclose(file_hscore);
+
+  ck_assert_int_eq(game->high_score, 563);
+
+
+  game->score = 700;
+  score(game);
+ // printf("\n\n %d \n\n", game->high_score );
+  ck_assert_int_eq(game->high_score, 700);
+
+
+
+
+ 
+
+
+
+
+#test test_Down
+  Figure* figure = create_figure();
+  figure->x = 5;
+  figure->y = 3;
+  move_down(figure);
+  ck_assert_int_eq(figure->y, 4);
+  free_figure(figure);
+
+
+#test test_Up
+  Figure* figure = create_figure();
+  figure->x = 5;
+  figure->y = 3;
+  move_up(figure);
+  ck_assert_int_eq(figure->y, 2);
+  free_figure(figure);
+
+
+#test test_Left
+  Figure* figure = create_figure();
+  figure->x = 5;
+  figure->y = 3;
+  move_left(figure);
+  ck_assert_int_eq(figure->x, 4);
+  free_figure(figure);
+
+
+#test test_Right
+  Figure* figure = create_figure();
+  figure->x = 5;
+  figure->y = 3;
+  move_right(figure);
+  ck_assert_int_eq(figure->x, 6);
+  free_figure(figure);
+
+
+#test test_colision
+  Figure* figure = create_figure();
+  GameInfo_t* game = new_game();
+  figure->x = 1;
+  figure->y = 1;
+  figure->figure[1][1] = 1;
+  game->field[2][2] = 1;
+
+  //s21_print_matrix(figure->figure);
+  // s21_print_matrix(game->field);
+
+  ck_assert_int_eq(colision(figure, game), 1);
+  free_game(game);
+  free_figure(figure);
+
+  Figure* f = create_figure();
+  GameInfo_t* g = new_game();
+  figure->x = 1;
+  figure->y = 1;
+
+  
+  f->figure[1][2] = 1;
+  g->field[4][4] = 1;
+ // s21_print_matrix(f->figure);
+ //  s21_print_matrix(g->field);
+  ck_assert_int_eq(colision(f, g), 0);
+  free_game(g);
+  free_figure(f);
+
+
+#test test_colision_pole
+  Figure* figure = create_figure();
+  GameInfo_t* game = new_game();
+  figure->x = 10;
+  figure->y = 1;
+  figure->figure[1][1] = 1;
+  ck_assert_int_eq(colision(figure, game), 1);
+
+  figure->x = 9;
+  figure->y = 1;
+  figure->figure[1][1] = 1;
+  ck_assert_int_eq(colision(figure, game), 0);
+
+  free_game(game);
+  free_figure(figure);
+
+
+#test test_plantFigure
+  Figure* figure = create_figure();
+  GameInfo_t* game = new_game();
+  figure->x = 1;
+  figure->y = 1;
+  figure->figure[1][1] = 1;
+  figure->figure[2][1] = 1;
+  field_figure(figure, game);
+  ck_assert_int_eq(game->field[2][2], 1);
+  ck_assert_int_eq(game->field[1][2], 0);
+  ck_assert_int_eq(game->field[3][2], 1);
+  ck_assert_int_eq(game->field[3][3], 0);
+
+  free_game(game);
+  free_figure(figure);
+
+
+#test test_lineFull
+  GameInfo_t* game = new_game();
+  for (int j = 1; j < 11; j++) {
+    game->field[1][j] = 1;
+  }
+  ck_assert_int_eq(line_full(1, game), 1);
+  ck_assert_int_eq(line_full(2, game), 0);
+  free_game(game);
+
+
+#test test_dropeLine
+  GameInfo_t* game = new_game();
+  for (int j = 1; j < 11; j++) {
+    game->field[8][j] = 1;
+  }
+  down_line(8, game);
+  for (int j = 1; j < 11; j++) {
+    ck_assert_int_eq(game->field[8][j], 0);
+  }
+
+
+  free_game(game);
+
+
+#test test_throw_line
+  GameInfo_t* game = new_game();
+  for (int j = 1; j < 11; j++) {
+    game->field[2][j] = 1;
+  }
+  ck_assert_int_eq(throw_line(game), 100);
+
+  for (int i = 1; i < 5; i++) {
+    for (int j = 1; j < 11; j++) {
+      game->field[i][j] = 1;
+    }
+  }
+  ck_assert_int_eq(throw_line(game), 1500);
+
+
+    for (int i = 1; i < 4; i++) {
+    for (int j = 1; j < 11; j++) {
+      game->field[i][j] = 1;
+    }
+  }
+  ck_assert_int_eq(throw_line(game), 700);
+
+      for (int i = 1; i < 3; i++) {
+    for (int j = 1; j < 11; j++) {
+      game->field[i][j] = 1;
+    }
+  }
+  ck_assert_int_eq(throw_line(game), 300);
+
+
+
+
+  
+  free_game(game);
+
+
+#test test_figure_on_field
+  GameInfo_t* game = new_game();
+  Figure* figure = create_figure();
+  figure_on_field(figure, game);
+
+  for (int i = 0; i < FIGURE_SIZE; i++) {
+    for (int j = 0; j < FIGURE_SIZE; j++) {
+      ck_assert_int_eq(figure->figure[i][j], game->next[i][j]);
+    }
+  }
+  ck_assert_int_eq(figure->x, 3);
+  ck_assert_int_eq(figure->y, 0);
+
+  free_figure(figure);
+  free_game(game);
+
+
+#test test_rotFigure
+  Figure* figure = create_figure();
+  figure->figure[1][1] = 1;
+  for (int i = 1; i < 4; i++) {
+    figure->figure[2][i] = 1;
+  }
+
+  //s21_print_matrix(figure->figure);
+  // Figure* try1 = create_figure();
+  Figure* rotFigure = transpose_figure(figure);
+  //s21_print_matrix(rotFigure->figure);
+  // s21_print_matrix(try1->figure);
+  for (int i = 0; i < FIGURE_SIZE; i++) {
+    for (int j = 0; j < FIGURE_SIZE; j++) {
+      // try1->figure[i][j] = figure->figure[j][4 - i];
+
+      // printf("\n%d  ==  %d \n", figure->figure[j][4 - i],
+      //        rotFigure->figure[i][j]);
+
+      ck_assert_int_eq(figure->figure[j][4 - i], rotFigure->figure[i][j]);
+    }
+  }
+  // s21_print_matrix(try1->figure);
+  free_figure(rotFigure);
+
+  for (int i = 0; i < 5; i++) {
+    for (int j = 0; j < 5; j++) {
+      figure->figure[i][j] = 0;
+    }
+  }
+  for (int i = 1; i < 5; i++) {
+    figure->figure[2][i] = 1;
+  }
+  rotFigure = transpose_figure(figure);
+  for (int i = 0; i < FIGURE_SIZE; i++) {
+    for (int j = 0; j < FIGURE_SIZE; j++) {
+      ck_assert_int_eq(figure->figure[j][4 - i],
+                       rotFigure->figure[i][j]); 
+    }
+  }
+  free_figure(rotFigure);
+
+  for (int i = 0; i < 5; i++) {
+    for (int j = 0; j < 5; j++) {
+      figure->figure[i][j] = 0;
+    }
+  }
+  figure->figure[1][3] = 1;
+  for (int i = 1; i < 4; i++) {
+    figure->figure[2][i] = 1;
+  }
+  rotFigure = transpose_figure(figure);
+  for (int i = 0; i < FIGURE_SIZE; i++) {
+    for (int j = 0; j < FIGURE_SIZE; j++) {
+      ck_assert_int_eq(figure->figure[j][4 - i], rotFigure->figure[i][j]);
+    }
+  }
+  free_figure(rotFigure);
+
+  for (int i = 0; i < 5; i++) {
+    for (int j = 0; j < 5; j++) {
+      figure->figure[i][j] = 0;
+    }
+  }
+  for (int i = 1; i < 3; i++) {
+    figure->figure[1][i] = 1;
+    figure->figure[2][i] = 1;
+  }
+  rotFigure = transpose_figure(figure);
+  for (int i = 0; i < FIGURE_SIZE; i++) {
+    for (int j = 0; j < FIGURE_SIZE; j++) {
+      ck_assert_int_eq(figure->figure[j][4 - i], rotFigure->figure[i][j]);
+    }
+  }
+  free_figure(rotFigure);
+
+  for (int i = 0; i < 5; i++) {
+    for (int j = 0; j < 5; j++) {
+      figure->figure[i][j] = 0;
+    }
+  }
+  for (int i = 1; i < 3; i++) {
+    figure->figure[1][i + 1] = 1;
+    figure->figure[2][i] = 1;
+  }
+  rotFigure = transpose_figure(figure);
+  for (int i = 0; i < FIGURE_SIZE; i++) {
+    for (int j = 0; j < FIGURE_SIZE; j++) {
+      ck_assert_int_eq(figure->figure[j][4 - i], rotFigure->figure[i][j]);
+    }
+  }
+  free_figure(rotFigure);
+
+  for (int i = 0; i < 5; i++) {
+    for (int j = 0; j < 5; j++) {
+      figure->figure[i][j] = 0;
+    }
+  }
+  figure->figure[1][2] = 1;
+  for (int i = 1; i < 4; i++) {
+    figure->figure[2][i] = 1;
+  }
+  rotFigure = transpose_figure(figure);
+  for (int i = 0; i < FIGURE_SIZE; i++) {
+    for (int j = 0; j < FIGURE_SIZE; j++) {
+      ck_assert_int_eq(figure->figure[j][4 - i], rotFigure->figure[i][j]);
+    }
+  }
+  free_figure(rotFigure);
+
+  for (int i = 0; i < 5; i++) {
+    for (int j = 0; j < 5; j++) {
+      figure->figure[i][j] = 0;
+    }
+  }
+  for (int i = 1; i < 3; i++) {
+    figure->figure[1][i] = 1;
+    figure->figure[2][i + 1] = 1;
+  }
+  rotFigure = transpose_figure(figure);
+  for (int i = 0; i < FIGURE_SIZE; i++) {
+    for (int j = 0; j < FIGURE_SIZE; j++) {
+      ck_assert_int_eq(figure->figure[j][4 - i], rotFigure->figure[i][j]);
+    }
+  }
+
+  free_figure(rotFigure);
+  free_figure(figure);
+
+
+#test test_userInput
+  GameInfo_t* game = new_game();
+  Figure* figure = create_figure();
+  UserAction_t player;
+
+  State state;
+  state = START;
+
+  figure->figure[1][1] = 1;
+  player = Right;
+  user_input(player, figure, game,  &state);
+  ck_assert_int_eq(figure->x, 1);
+
+  figure->x = 3;
+  figure->y = 0;
+  player = Left;
+  user_input(player, figure, game,  &state);
+  ck_assert_int_eq(figure->x, 2);
+
+  figure->x = 0;
+  figure->y = 0;
+  player = Down;
+  user_input(player, figure, game, &state);
+  ck_assert_int_eq(figure->y, 1);
+
+  figure->x = 3;
+  figure->y = 0;
+  player = Action;
+  user_input(player, figure, game,  &state);
+
+  figure->x = 10;
+  figure->y = 0;
+  player = Action;
+  user_input(player, figure, game,  &state);
+
+  figure->x = 0;
+  figure->y = 0;
+  player = Up;
+  user_input(player, figure, game,  &state);
+  ck_assert_int_eq(state, SHIFTING);
+
+  for (int i = 0; i < 5; i++) {
+    for (int j = 0; j < 5; j++) {
+      figure->figure[i][j] = 0;
+    }
+  }
+  figure->x = 0;
+  figure->y = 0;
+
+  player = Right;
+  figure->x = 10;
+  figure->figure[1][4] = 1;
+  user_input(player, figure, game,  &state);
+  ck_assert_int_eq(figure->x, 10);
+
+  player = Left;
+  figure->x = 0;
+  figure->figure[1][1] = 1;
+  user_input(player, figure, game,  &state);
+  ck_assert_int_eq(figure->x, 0);
+
+  free_game(game);
+  free_figure(figure);
+
+
+#test test_table_level
+  GameInfo_t* game = new_game();
+
+  for (int i = 1; i < 10; i++) {
+    game->score = 600 * i;
+    table_level(game);
+
+    // printf("\n %d == %d \n", game->level, i + 1);
+    ck_assert_int_eq(game->level, i + 1);
+  }
+
+  game->score = 12346848;
+  table_level(game);
+  ck_assert_int_eq(game->level, 10);
+
+  free_game(game);
+
+
+
+#test test_sigact
+  Figure* figure = create_figure();
+  GameInfo_t* game = new_game();
+
+  UserAction_t player;
+  player = Down;
+  State state;
+
+  state = SPAWN;
+  sigact(game, figure, player, &state);
+  ck_assert_int_eq(state, MOVING);
+
+  state = MOVING;
+  sigact(game, figure,  player, &state);
+  ck_assert_int_eq(state, MOVING);
+
+
+  state = SHIFTING;
+  sigact(game, figure,  player, &state);
+  ck_assert_int_eq(state, MOVING);
+
+
+  state = ATTACHING;
+
+  sigact(game, figure,  player, &state);
+ 
+  ck_assert_int_eq(state, SPAWN);
+
+  state = ATTACHING;
+ 
+  sigact(game, figure, player, &state);
+  
+  ck_assert_int_eq(state, SPAWN);
+
+  state = GAMEOVER;
+  sigact(game, figure, player, &state);
+  ck_assert_int_eq(state, START);
+
+  free_figure(figure);
+  free_game(game);
+
+
